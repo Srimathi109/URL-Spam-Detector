@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Spam Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .result.safe {
+            background: #d4edda;
+            border: 2px solid #28a745;
+        }
+        
+        .result.caution {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+        }
+        
+        .result.suspicious {
+            background: #ffe5cc;
+            border: 2px solid #ff9800;
+        }
+        
+        .result.dangerous {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+        }
+        
+        .result.unauthorized {
+            background: #fff9e6;
+            border: 2px solid #f1c40f;
+        }
+        
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .status-icon {
+            font-size: 32px;
+        }
+        
+        .result-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .risk-score {
+            margin: 10px 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .warnings {
+            margin-top: 15px;
+        }
+        
+        .warnings h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .warning-item {
+            padding: 8px 12px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 5px;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            display: none;
+        }
+        
+        .error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            padding: 15px;
+            border-radius: 10px;
+            color: #721c24;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ URL Spam Detector</h1>
+        <p class="subtitle">Check if a URL is safe or potentially malicious</p>
+        
+        <div class="input-group">
+            <input type="text" id="urlInput" placeholder="Enter URL to check (e.g., https://example.com)">
+            <button onclick="checkURL()">Check</button>
+        </div>
+        
+        <div class="loading" id="loading">Analyzing URL...</div>
+        <div class="error" id="error"></div>
+        <div class="result" id="result"></div>
+    </div>
+    
+    <script>
+        function checkURL() {
+            const url = document.getElementById('urlInput').value.trim();
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const result = document.getElementById('result');
+            
+            // Reset displays
+            loading.style.display = 'none';
+            error.style.display = 'none';
+            result.style.display = 'none';
+            
+            if (!url) {
+                showError('Please enter a URL');
+                return;
+            }
+            
+            loading.style.display = 'block';
+            
+            fetch('/check-url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: url })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                displayResult(data);
+            })
+            .catch(err => {
+                loading.style.display = 'none';
+                showError('Failed to check URL. Please try again.');
+            });
+        }
+        
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+        
+        function displayResult(data) {
+            const result = document.getElementById('result');
+            const icons = {
+                'safe': '✅',
+                'caution': '⚠️',
+                'suspicious': '🚨',
+                'dangerous': '🛑',
+                'unauthorized': '🚫'
+            };
+            
+            const titles = {
+                'safe': 'URL Appears Safe',
+                'caution': 'Exercise Caution',
+                'suspicious': 'Suspicious URL',
+                'dangerous': 'Dangerous URL - Do Not Visit!',
+                'unauthorized': 'Unauthorized URL - Access Restricted'
+            };
+            
+            let html = `
+                <div class="result-header">
+                    <span class="status-icon">${icons[data.status]}</span>
+                    <div>
+                        <div class="result-title">${titles[data.status]}</div>
+                        <div class="risk-score">Risk Score: ${data.risk_score}/100 | Threat Level: ${data.threat_level}</div>
+                    </div>
+                </div>
+            `;
+            
+            if (data.warnings && data.warnings.length > 0) {
+                html += '<div class="warnings"><h3>⚠️ Warnings:</h3>';
+                data.warnings.forEach(warning => {
+                    html += `<div class="warning-item">${warning}</div>`;
+                });
+                html += '</div>';
+            } else {
+                html += '<p>No suspicious indicators detected.</p>';
+            }
+            
+            result.className = 'result ' + data.status;
+            result.innerHTML = html;
+            result.style.display = 'block';
+        }
+        
+        // Allow Enter key to submit
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkURL();
+            }
+        });
+    </script>
+</body>
+</html>
